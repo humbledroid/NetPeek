@@ -7,7 +7,9 @@ plugins {
 
 kotlin {
     androidTarget {
-        compileSdkVersion = "android-34"
+        compilations.all {
+            kotlinOptions { jvmTarget = "17" }
+        }
     }
     iosX64()
     iosArm64()
@@ -20,11 +22,13 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(libs.kotlinx.coroutines.core)
         }
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation("androidx.activity:activity-compose:1.9.3")
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -36,4 +40,8 @@ android {
     namespace = "io.netpeek.ui"
     compileSdk = 34
     defaultConfig { minSdk = 24 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }

@@ -76,9 +76,10 @@ private fun RequestTab(call: NetworkCall) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionHeader("Headers")
         CodeBlock(call.requestHeaders.prettyPrintJson())
-        if (!call.requestBody.isNullOrBlank()) {
+        val requestBody = call.requestBody
+        if (!requestBody.isNullOrBlank()) {
             SectionHeader("Body")
-            CodeBlock(call.requestBody.prettyPrintJson())
+            CodeBlock(requestBody.prettyPrintJson())
         }
     }
 }
@@ -88,9 +89,10 @@ private fun ResponseTab(call: NetworkCall) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionHeader("Headers")
         CodeBlock(call.responseHeaders?.prettyPrintJson() ?: "\u2014")
-        if (!call.responseBody.isNullOrBlank()) {
+        val responseBody = call.responseBody
+        if (!responseBody.isNullOrBlank()) {
             SectionHeader("Body")
-            CodeBlock(call.responseBody.prettyPrintJson())
+            CodeBlock(responseBody.prettyPrintJson())
         }
     }
 }

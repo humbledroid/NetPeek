@@ -4,7 +4,7 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import io.netpeek.db.NetPeekDatabase
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -17,15 +17,15 @@ class NetworkCallRepositoryImpl(driverFactory: DatabaseDriverFactory) : NetworkC
     override fun getAllCalls(): Flow<List<NetworkCall>> {
         return queries.selectAll()
             .asFlow()
-            .mapToList(Dispatchers.IO)
+            .mapToList(Dispatchers.Default)
             .map { rows -> rows.map { it.toNetworkCall() } }
     }
 
-    override suspend fun getCallById(id: Long): NetworkCall? = withContext(Dispatchers.IO) {
+    override suspend fun getCallById(id: Long): NetworkCall? = withContext(Dispatchers.Default) {
         queries.selectById(id).executeAsOneOrNull()?.toNetworkCall()
     }
 
-    override suspend fun insert(call: NetworkCall) = withContext(Dispatchers.IO) {
+    override suspend fun insert(call: NetworkCall) = withContext(Dispatchers.Default) {
         queries.insertCall(
             url = call.url,
             method = call.method,
@@ -40,11 +40,11 @@ class NetworkCallRepositoryImpl(driverFactory: DatabaseDriverFactory) : NetworkC
         )
     }
 
-    override suspend fun clearAll() = withContext(Dispatchers.IO) {
+    override suspend fun clearAll() = withContext(Dispatchers.Default) {
         queries.deleteAll()
     }
 
-    override suspend fun count(): Long = withContext(Dispatchers.IO) {
+    override suspend fun count(): Long = withContext(Dispatchers.Default) {
         queries.countAll().executeAsOne()
     }
 

@@ -7,7 +7,9 @@ plugins {
 
 kotlin {
     androidTarget {
-        compileSdkVersion = "android-34"
+        compilations.all {
+            kotlinOptions { jvmTarget = "17" }
+        }
     }
     iosX64()
     iosArm64()
@@ -26,11 +28,9 @@ kotlin {
             implementation(libs.ktor.client.android)
             implementation(libs.sqldelight.android)
         }
-        val iosMain by getting {
-            dependencies {
-                implementation(libs.ktor.client.darwin)
-                implementation(libs.sqldelight.native)
-            }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.java)
@@ -43,6 +43,10 @@ android {
     namespace = "io.netpeek.sdk"
     compileSdk = 34
     defaultConfig { minSdk = 24 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
 sqldelight {
