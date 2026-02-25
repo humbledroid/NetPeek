@@ -14,12 +14,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="io.netpeek.ui.NetPeekActivity"
-            android:exported="false"
-            android:label="NetPeek"
-            android:taskAffinity="io.netpeek.inspector"
-            android:launchMode="singleTask"
-            android:documentLaunchMode="intoExisting" />
+        <!-- NetPeekActivity and NetPeekClearReceiver are provided by netpeek-ui via manifest merge -->
     </application>
 </manifest>

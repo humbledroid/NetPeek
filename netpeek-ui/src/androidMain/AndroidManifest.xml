@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- NetPeekActivity — inspector UI -->
+        <activity
+            android:name="io.netpeek.ui.NetPeekActivity"
+            android:exported="false"
+            android:label="NetPeek"
+            android:taskAffinity="io.netpeek.inspector"
+            android:launchMode="singleTask"
+            android:documentLaunchMode="intoExisting" />
+
+        <!-- NetPeekClearReceiver — handles "Clear All" from the persistent notification -->
+        <receiver
+            android:name="io.netpeek.ui.NetPeekClearReceiver"
+            android:exported="false" />
+    </application>
+</manifest>
