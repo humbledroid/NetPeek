@@ -6,6 +6,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.netpeek.sdk.NetPeek
 
 class NetPeekActivity : ComponentActivity() {
@@ -22,33 +25,46 @@ class NetPeekActivity : ComponentActivity() {
 
         private fun buildIntent(context: Context) =
             Intent(context, NetPeekActivity::class.java).apply {
+                // FLAG_ACTIVITY_NEW_TASK — required when starting from non-Activity context
+                // (notifications, BroadcastReceiver).
+                // No FLAG_ACTIVITY_MULTIPLE_TASK — that bypasses singleTask and prevents
+                // onNewIntent from firing, which broke the deep-link navigation.
+                // The custom taskAffinity in the manifest is enough to keep the inspector
+                // as a separate recents entry.
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             }
     }
 
+    // Reactive state — Compose observes this and recomposes when a new intent arrives.
+    private var callIdState by mutableStateOf<Long?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val callId = intent
-            .takeIf { it.hasExtra(EXTRA_CALL_ID) }
-            ?.getLongExtra(EXTRA_CALL_ID, -1L)
-            ?.takeIf { it > 0L }
+        callIdState = extractCallId(intent)
 
         setContent {
             MaterialTheme {
                 NetPeekApp(
                     repository    = NetPeek.getRepository(),
-                    initialCallId = callId
+                    initialCallId = callIdState
                 )
             }
         }
     }
 
-    // Re-read the call ID if the activity is re-launched via FLAG_ACTIVITY_SINGLE_TOP
+    /**
+     * Called when the activity is already running (singleTask) and a new intent arrives —
+     * e.g. the user taps a different request's notification while the inspector is open.
+     * Updating [callIdState] triggers recomposition without recreating the activity.
+     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        recreate()   // simplest way to pick up the new initialCallId
+        callIdState = extractCallId(intent)
     }
+
+    private fun extractCallId(i: Intent): Long? =
+        i.takeIf { it.hasExtra(EXTRA_CALL_ID) }
+         ?.getLongExtra(EXTRA_CALL_ID, -1L)
+         ?.takeIf { it > 0L }
 }
