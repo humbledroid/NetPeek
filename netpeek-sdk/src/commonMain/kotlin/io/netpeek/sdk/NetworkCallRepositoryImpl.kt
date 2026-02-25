@@ -44,7 +44,9 @@ class NetworkCallRepositoryImpl(driverFactory: DatabaseDriverFactory) : NetworkC
             timestamp = call.timestamp,
             is_error = if (call.isError) 1L else 0L
         )
-        _newCallsFlow.emit(call)
+        // Fetch the auto-generated ID and emit the complete call
+        val generatedId = queries.lastInsertRowId().executeAsOne()
+        _newCallsFlow.emit(call.copy(id = generatedId))
     }
 
     override suspend fun clearAll() = withContext(Dispatchers.Default) {

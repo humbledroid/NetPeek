@@ -16,6 +16,9 @@ insertCall:
 INSERT INTO network_calls (url, method, request_headers, request_body, response_code, response_headers, response_body, duration_ms, timestamp, is_error)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+lastInsertRowId:
+SELECT last_insert_rowid();
+
 selectAll:
 SELECT * FROM network_calls ORDER BY timestamp DESC;
 
