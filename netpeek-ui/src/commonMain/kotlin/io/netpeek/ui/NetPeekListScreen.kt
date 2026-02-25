@@ -30,11 +30,34 @@ fun NetPeekListScreen(
     val calls by repository.getAllCalls().collectAsState(initial = emptyList())
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show a snackbar toast whenever a new request is captured
+    LaunchedEffect(Unit) {
+        repository.newCallsFlow.collect { call ->
+            val status = call.responseCode?.toString() ?: if (call.isError) "ERR" else "…"
+            val label = "${call.method}  ${call.url.take(45)}  →  $status"
+            snackbarHostState.showSnackbar(
+                message = label,
+                duration = SnackbarDuration.Short
+            )
+        }
+    }
 
     val filtered = if (searchQuery.isBlank()) calls
     else calls.filter { it.url.contains(searchQuery, ignoreCase = true) }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -62,7 +85,7 @@ fun NetPeekListScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search URL\u2026") },
+                placeholder = { Text("Search URL…") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -71,7 +94,11 @@ fun NetPeekListScreen(
 
             if (filtered.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No requests captured yet.", color = MaterialTheme.colorScheme.outline)
+                    Text(
+                        if (searchQuery.isBlank()) "No requests captured yet."
+                        else "No results for \"$searchQuery\"",
+                        color = MaterialTheme.colorScheme.outline
+                    )
                 }
             } else {
                 LazyColumn {
@@ -126,12 +153,12 @@ private fun NetworkCallRow(call: NetworkCall, onClick: () -> Unit) {
 @Composable
 private fun MethodBadge(method: String) {
     val color = when (method.uppercase()) {
-        "GET" -> Color(0xFF4CAF50)
-        "POST" -> Color(0xFF2196F3)
-        "PUT" -> Color(0xFFFF9800)
+        "GET"    -> Color(0xFF4CAF50)
+        "POST"   -> Color(0xFF2196F3)
+        "PUT"    -> Color(0xFFFF9800)
         "DELETE" -> Color(0xFFF44336)
-        "PATCH" -> Color(0xFF9C27B0)
-        else -> Color(0xFF607D8B)
+        "PATCH"  -> Color(0xFF9C27B0)
+        else     -> Color(0xFF607D8B)
     }
     Box(
         modifier = Modifier
@@ -150,23 +177,22 @@ private fun MethodBadge(method: String) {
 @Composable
 private fun StatusCodeBadge(code: Int?, isError: Boolean) {
     val color = when {
-        code == null -> Color(0xFF9E9E9E)
+        code == null          -> Color(0xFF9E9E9E)
         isError || code >= 400 -> Color(0xFFF44336)
-        code >= 300 -> Color(0xFFFF9800)
-        code >= 200 -> Color(0xFF4CAF50)
-        else -> Color(0xFF9E9E9E)
+        code >= 300           -> Color(0xFFFF9800)
+        code >= 200           -> Color(0xFF4CAF50)
+        else                  -> Color(0xFF9E9E9E)
     }
     Text(
-        text = code?.toString() ?: "\u2014",
+        text = code?.toString() ?: "—",
         color = color,
         style = MaterialTheme.typography.labelMedium
     )
 }
 
 private fun formatTimestamp(epochMs: Long): String {
-    // Simple formatting without java.util.Date for KMP compatibility
     val seconds = epochMs / 1000
     val minutes = seconds / 60 % 60
-    val hours = seconds / 3600 % 24
-    return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}"
+    val hours   = seconds / 3600 % 24
+    return "${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${(seconds % 60).toString().padStart(2,'0')}"
 }

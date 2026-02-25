@@ -4,8 +4,10 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import io.netpeek.db.NetPeekDatabase
 import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -14,12 +16,16 @@ class NetworkCallRepositoryImpl(driverFactory: DatabaseDriverFactory) : NetworkC
     private val db = NetPeekDatabase(driverFactory.createDriver())
     private val queries = db.networkCallsQueries
 
-    override fun getAllCalls(): Flow<List<NetworkCall>> {
-        return queries.selectAll()
+    private val _newCallsFlow = MutableSharedFlow<NetworkCall>(
+        extraBufferCapacity = 64  // don't drop events if collector is slow
+    )
+    override val newCallsFlow: SharedFlow<NetworkCall> = _newCallsFlow.asSharedFlow()
+
+    override fun getAllCalls(): Flow<List<NetworkCall>> =
+        queries.selectAll()
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { rows -> rows.map { it.toNetworkCall() } }
-    }
 
     override suspend fun getCallById(id: Long): NetworkCall? = withContext(Dispatchers.Default) {
         queries.selectById(id).executeAsOneOrNull()?.toNetworkCall()
@@ -38,6 +44,7 @@ class NetworkCallRepositoryImpl(driverFactory: DatabaseDriverFactory) : NetworkC
             timestamp = call.timestamp,
             is_error = if (call.isError) 1L else 0L
         )
+        _newCallsFlow.emit(call)
     }
 
     override suspend fun clearAll() = withContext(Dispatchers.Default) {
