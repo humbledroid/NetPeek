@@ -12,7 +12,12 @@ class NetPeekActivity : ComponentActivity() {
 
     companion object {
         fun newIntent(context: Context): Intent =
-            Intent(context, NetPeekActivity::class.java)
+            Intent(context, NetPeekActivity::class.java).apply {
+                // Launch into its own task so it appears separately in recents
+                // and the user can freely switch between the app and inspector
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
