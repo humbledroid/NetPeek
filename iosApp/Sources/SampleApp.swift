@@ -62,12 +62,27 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         // Let NetPeek handle its own notification actions
         if NetPeekViewControllerKt.handleNotificationResponse(response: response) {
-            // "Open Inspector" action — present the inspector
-            if response.actionIdentifier == "NETPEEK_OPEN" {
+            let isOpenAction = response.actionIdentifier == NetPeekNotifier.shared.ACTION_OPEN
+                            || response.actionIdentifier == UNNotificationDefaultActionIdentifier
+
+            if isOpenAction {
+                // Extract the call ID stored in userInfo so we open to that specific request
+                let userInfo  = response.notification.request.content.userInfo
+                let callIdStr = userInfo["netpeek_call_id"] as? String
+                let callId    = callIdStr.flatMap { Int64($0) } ?? -1
+
                 DispatchQueue.main.async {
                     guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                           let root  = scene.windows.first?.rootViewController else { return }
-                    let inspector = NetPeekViewControllerKt.createNetPeekViewController()
+
+                    let inspector: UIViewController
+                    if callId > 0 {
+                        // Open directly to the tapped request's detail screen
+                        inspector = NetPeekViewControllerKt.createNetPeekViewController(callId: callId)
+                    } else {
+                        // Fallback: open the list
+                        inspector = NetPeekViewControllerKt.createNetPeekViewController()
+                    }
                     inspector.modalPresentationStyle = .formSheet
                     root.present(inspector, animated: true)
                 }

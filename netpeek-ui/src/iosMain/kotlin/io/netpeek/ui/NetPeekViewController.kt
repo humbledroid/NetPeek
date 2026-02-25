@@ -18,9 +18,29 @@ import platform.UIKit.UIWindowSceneActivationRequestOptions
  *   let vc = NetPeekViewControllerKt.createNetPeekViewController()
  *   present(vc, animated: true)
  */
+/** Opens the inspector list. */
 fun createNetPeekViewController(): UIViewController = ComposeUIViewController {
     MaterialTheme {
         NetPeekApp(repository = NetPeek.getRepository())
+    }
+}
+
+/**
+ * Opens the inspector and navigates directly to the given request's detail screen.
+ * Use this when presenting the inspector from a notification tap.
+ *
+ * Swift usage:
+ *   let callIdStr = response.notification.request.content.userInfo["netpeek_call_id"] as? String
+ *   let callId    = callIdStr.flatMap { Int64($0) } ?? -1
+ *   let vc        = NetPeekViewControllerKt.createNetPeekViewController(callId: callId)
+ *   present(vc, animated: true)
+ */
+fun createNetPeekViewController(callId: Long): UIViewController = ComposeUIViewController {
+    MaterialTheme {
+        NetPeekApp(
+            repository    = NetPeek.getRepository(),
+            initialCallId = callId
+        )
     }
 }
 

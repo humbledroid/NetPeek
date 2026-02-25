@@ -105,9 +105,10 @@ object NetPeekNotifier {
         content.badge              = NSNumber(int = badgeCount)
         content.categoryIdentifier = CATEGORY_ID
         content.userInfo           = mapOf(
-            "netpeek_url"    to call.url,
-            "netpeek_method" to call.method,
-            "netpeek_status" to status
+            "netpeek_call_id" to call.id.toString(), // stored as String to avoid NSNumber boxing
+            "netpeek_url"     to call.url,
+            "netpeek_method"  to call.method,
+            "netpeek_status"  to status
         )
 
         // Trigger immediately (minimum interval: 0.1s)

@@ -167,7 +167,12 @@ object NetPeekNotifier {
         val title    = "${statusEmoji(call)}  ${call.method}  →  $status$duration"
         val url      = call.url
 
-        val openIntent = pendingInspectorIntent(context, requestCode = requestNotifId.get())
+        // Tapping this notification opens the inspector straight to this request's detail
+        val openIntent = pendingInspectorIntent(
+            context,
+            callId      = call.id,
+            requestCode = requestNotifId.get()
+        )
 
         val color = when {
             call.isError                          -> Color.RED
@@ -194,13 +199,22 @@ object NetPeekNotifier {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private fun pendingInspectorIntent(context: Context, requestCode: Int): PendingIntent =
-        PendingIntent.getActivity(
+    private fun pendingInspectorIntent(
+        context: Context,
+        callId: Long? = null,
+        requestCode: Int
+    ): PendingIntent {
+        val intent = if (callId != null && callId > 0L)
+            NetPeekActivity.newIntent(context, callId)
+        else
+            NetPeekActivity.newIntent(context)
+        return PendingIntent.getActivity(
             context,
             requestCode,
-            NetPeekActivity.newIntent(context).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+    }
 
     private fun buildSummaryLine(call: NetworkCall): String {
         val status = call.responseCode?.toString() ?: if (call.isError) "ERR" else "…"
