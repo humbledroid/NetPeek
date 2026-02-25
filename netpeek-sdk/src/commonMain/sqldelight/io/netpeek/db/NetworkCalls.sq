@@ -1,0 +1,29 @@
+CREATE TABLE network_calls (
+  id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  url TEXT NOT NULL,
+  method TEXT NOT NULL,
+  request_headers TEXT NOT NULL,
+  request_body TEXT,
+  response_code INTEGER,
+  response_headers TEXT,
+  response_body TEXT,
+  duration_ms INTEGER,
+  timestamp INTEGER NOT NULL,
+  is_error INTEGER NOT NULL DEFAULT 0
+);
+
+insertCall:
+INSERT INTO network_calls (url, method, request_headers, request_body, response_code, response_headers, response_body, duration_ms, timestamp, is_error)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAll:
+SELECT * FROM network_calls ORDER BY timestamp DESC;
+
+selectById:
+SELECT * FROM network_calls WHERE id = ?;
+
+deleteAll:
+DELETE FROM network_calls;
+
+countAll:
+SELECT COUNT(*) FROM network_calls;
