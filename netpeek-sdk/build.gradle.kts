@@ -11,9 +11,20 @@ kotlin {
             kotlinOptions { jvmTarget = "17" }
         }
     }
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    
+    // iOS targets with framework configuration for Xcode integration
+    val iosX64 = iosX64()
+    val iosArm64 = iosArm64()
+    val iosSimulatorArm64 = iosSimulatorArm64()
+    
+    // Configure frameworks for iOS
+    listOf(iosX64, iosArm64, iosSimulatorArm64).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "netpeek_sdk"
+            isStatic = true
+        }
+    }
+    
     jvm()
 
     sourceSets {

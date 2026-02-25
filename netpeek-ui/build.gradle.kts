@@ -11,14 +11,27 @@ kotlin {
             kotlinOptions { jvmTarget = "17" }
         }
     }
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    
+    // iOS targets with framework configuration for Xcode integration
+    val iosX64 = iosX64()
+    val iosArm64 = iosArm64()
+    val iosSimulatorArm64 = iosSimulatorArm64()
+    
+    // Configure frameworks for iOS
+    listOf(iosX64, iosArm64, iosSimulatorArm64).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "netpeek_ui"
+            isStatic = true
+            // Export SDK so iOS can access its classes
+            export(project(":netpeek-sdk"))
+        }
+    }
+    
     jvm()
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":netpeek-sdk"))
+            api(project(":netpeek-sdk"))  // Use api since we export it for iOS
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
