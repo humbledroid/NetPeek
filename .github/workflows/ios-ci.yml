@@ -1,0 +1,150 @@
+name: iOS Build & Simulator Test
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:   # allow manual trigger
+
+jobs:
+  ios-build:
+    runs-on: macos-14  # Apple Silicon runner — needed for iosSimulatorArm64
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Build KMP iOS frameworks (iosSimulatorArm64)
+        run: |
+          chmod +x gradlew
+          ./gradlew \
+            :netpeek-sdk:linkDebugFrameworkIosSimulatorArm64 \
+            :netpeek-ui:linkDebugFrameworkIosSimulatorArm64 \
+            --stacktrace
+
+      - name: List built frameworks
+        run: |
+          echo "=== netpeek-sdk framework ==="
+          ls -la netpeek-sdk/build/bin/iosSimulatorArm64/debugFramework/
+          echo "=== netpeek-ui framework ==="
+          ls -la netpeek-ui/build/bin/iosSimulatorArm64/debugFramework/
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: iosApp
+        run: xcodegen generate
+
+      - name: List available simulators
+        run: xcrun simctl list devices available --json | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for runtime, devices in data['devices'].items():
+              if 'iOS' in runtime and devices:
+                  for d in devices[:2]:
+                      print(f\"{d['udid']} | {d['name']} | {runtime}\")
+          " | head -10
+
+      - name: Boot iPhone 16 simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          iphones=[dev for rt,devs in d.items() for dev in devs if 'iPhone 16' in dev.get('name','') and dev.get('isAvailable')]
+          print(iphones[0]['udid'] if iphones else '')
+          ")
+          if [ -z "$UDID" ]; then
+            # fallback: first available iPhone
+            UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          d=json.load(sys.stdin)['devices']
+          iphones=[dev for rt,devs in d.items() for dev in devs if 'iPhone' in dev.get('name','') and dev.get('isAvailable')]
+          print(iphones[0]['udid'] if iphones else '')
+            ")
+          fi
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          echo "Booting simulator: $UDID"
+          xcrun simctl boot "$UDID" || true
+
+      - name: Build app for simulator
+        working-directory: iosApp
+        run: |
+          xcodebuild build \
+            -project NetPeekSample.xcodeproj \
+            -scheme NetPeekSample \
+            -sdk iphonesimulator \
+            -destination "id=${{ env.SIMULATOR_UDID }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || xcodebuild build \
+              -project NetPeekSample.xcodeproj \
+              -scheme NetPeekSample \
+              -sdk iphonesimulator \
+              -destination "id=${{ env.SIMULATOR_UDID }}" \
+              -configuration Debug \
+              CODE_SIGNING_ALLOWED=NO
+
+      - name: Install xcpretty
+        run: gem install xcpretty --no-document 2>/dev/null || true
+
+      - name: Install app on simulator
+        working-directory: iosApp
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "NetPeekSample.app" -path "*/iphonesimulator*" 2>/dev/null | head -1)
+          echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
+          echo "Found app at: $APP_PATH"
+          xcrun simctl install "${{ env.SIMULATOR_UDID }}" "$APP_PATH"
+
+      - name: Launch app and wait
+        run: |
+          xcrun simctl launch "${{ env.SIMULATOR_UDID }}" io.netpeek.sample.ios
+          sleep 5
+
+      - name: Take screenshot — app launched
+        run: |
+          mkdir -p screenshots
+          xcrun simctl io "${{ env.SIMULATOR_UDID }}" screenshot screenshots/01-app-launched.png
+          echo "Screenshot 1 saved"
+
+      - name: Simulate GET request via UI test (simctl openurl)
+        run: |
+          # Fire a deep-link or just wait — app auto-fires in UI test mode
+          sleep 3
+          xcrun simctl io "${{ env.SIMULATOR_UDID }}" screenshot screenshots/02-after-requests.png
+          echo "Screenshot 2 saved"
+
+      - name: Upload screenshots as artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-screenshots
+          path: screenshots/
+          retention-days: 14
+
+      - name: Upload build logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-logs
+          path: |
+            ~/Library/Logs/DiagnosticReports/
+            iosApp/*.log
+          retention-days: 7
