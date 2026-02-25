@@ -19,3 +19,4 @@ dependencyResolutionManagement {
 include(":netpeek-sdk")
 include(":netpeek-ui")
 include(":sample-android")
+include(":sample-desktop")
