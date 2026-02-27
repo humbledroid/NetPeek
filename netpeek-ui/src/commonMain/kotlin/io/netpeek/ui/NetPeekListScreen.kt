@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +26,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun NetPeekListScreen(
     repository: NetworkCallRepository,
-    onCallSelected: (NetworkCall) -> Unit
+    onCallSelected: (NetworkCall) -> Unit,
+    onDismiss: (() -> Unit)? = null
 ) {
     val calls by repository.getAllCalls().collectAsState(initial = emptyList())
     var searchQuery by remember { mutableStateOf("") }
@@ -72,6 +74,11 @@ fun NetPeekListScreen(
                 actions = {
                     IconButton(onClick = { scope.launch { repository.clearAll() } }) {
                         Icon(Icons.Default.Delete, contentDescription = "Clear all")
+                    }
+                    if (onDismiss != null) {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
                     }
                 }
             )

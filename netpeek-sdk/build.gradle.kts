@@ -67,3 +67,16 @@ sqldelight {
         }
     }
 }
+
+// Xcode 16+ rejects underscores in CFBundleIdentifier.
+// Kotlin/Native generates "io.netpeek.netpeek_sdk" — patch it to use a hyphen after every link.
+tasks.matching { it.name.startsWith("link") && it.name.contains("Framework") && it.name.contains("Ios") }.configureEach {
+    doLast {
+        fileTree(layout.buildDirectory) {
+            include("bin/**/netpeek_sdk.framework/Info.plist")
+        }.forEach { plist ->
+            val fixed = plist.readText().replace("io.netpeek.netpeek_sdk", "io.netpeek.netpeek-sdk")
+            plist.writeText(fixed)
+        }
+    }
+}

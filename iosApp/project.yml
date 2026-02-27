@@ -18,19 +18,28 @@ targets:
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
-        # Point to KMP-built frameworks
-        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../netpeek-sdk/build/bin/iosSimulatorArm64/debugFramework $(SRCROOT)/../netpeek-ui/build/bin/iosSimulatorArm64/debugFramework
+        # sample_shared is a superset framework: includes netpeek-ui + netpeek-sdk symbols
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../sample-shared/build/bin/iosSimulatorArm64/debugFramework
+        # Kotlin/Native-generated frameworks have underscores in CFBundleIdentifier,
+        # which Xcode 16+ treats as errors. Disable the strict validation.
+        VALIDATE_WORKSPACE: NO
     info:
       path: Sources/Info.plist
       properties:
         UILaunchScreen: {}
-        UIApplicationSupportsMultipleScenes: true
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
+        CADisableMinimumFrameDurationOnPhone: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
     dependencies:
-      - framework: ../netpeek-sdk/build/bin/iosSimulatorArm64/debugFramework/netpeek_sdk.framework
+      - framework: ../sample-shared/build/bin/iosSimulatorArm64/debugFramework/sample_shared.framework
         embed: true
         codeSign: false
-      - framework: ../netpeek-ui/build/bin/iosSimulatorArm64/debugFramework/netpeek_ui.framework
-        embed: true
-        codeSign: false
+      # SQLite — required by SQLDelight's NativeSqliteDriver bundled in netpeek_sdk (via sample_shared)
+      - sdk: libsqlite3.tbd
+      # libc++ — required by Kotlin/Native runtime
+      - sdk: libc++.tbd

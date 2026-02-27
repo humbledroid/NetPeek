@@ -50,6 +50,19 @@ kotlin {
     }
 }
 
+// Xcode 16+ rejects underscores in CFBundleIdentifier.
+// Kotlin/Native generates "io.netpeek.ui.netpeek_ui" — patch it to use a hyphen after every link.
+tasks.matching { it.name.startsWith("link") && it.name.contains("Framework") && it.name.contains("Ios") }.configureEach {
+    doLast {
+        fileTree(layout.buildDirectory) {
+            include("bin/**/netpeek_ui.framework/Info.plist")
+        }.forEach { plist ->
+            val fixed = plist.readText().replace("io.netpeek.ui.netpeek_ui", "io.netpeek.ui.netpeek-ui")
+            plist.writeText(fixed)
+        }
+    }
+}
+
 android {
     namespace = "io.netpeek.ui"
     compileSdk = 34

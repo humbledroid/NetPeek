@@ -3,25 +3,29 @@ package io.netpeek.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.window.ComposeUIViewController
 import io.netpeek.sdk.NetPeek
-import platform.Foundation.NSUserActivity
-import platform.UIKit.UIApplication
-import platform.UIKit.UISceneActivationConditions
-import platform.UIKit.UISceneSessionActivationRequest
 import platform.UIKit.UIViewController
-import platform.UIKit.UIWindowSceneActivationRequestOptions
 
-/**
- * Creates a UIViewController embedding the NetPeek inspector.
- * Use this for modal/push presentation within your existing scene.
- *
- * Usage (Swift):
- *   let vc = NetPeekViewControllerKt.createNetPeekViewController()
- *   present(vc, animated: true)
- */
 /** Opens the inspector list. */
 fun createNetPeekViewController(): UIViewController = ComposeUIViewController {
     MaterialTheme {
         NetPeekApp(repository = NetPeek.getRepository())
+    }
+}
+
+/**
+ * Opens the inspector list with a close (×) button that invokes [onDismiss].
+ * Use this when presenting the inspector modally so the user can dismiss it.
+ *
+ * Swift usage:
+ *   var dismissAction: () -> Void = {}
+ *   let vc = NetPeekViewControllerKt.createNetPeekViewController(onDismiss: { dismissAction() })
+ *   dismissAction = { vc.dismiss(animated: true, completion: nil) }
+ *   vc.modalPresentationStyle = .pageSheet
+ *   root.present(vc, animated: true)
+ */
+fun createNetPeekViewController(onDismiss: () -> Unit): UIViewController = ComposeUIViewController {
+    MaterialTheme {
+        NetPeekApp(repository = NetPeek.getRepository(), onDismiss = onDismiss)
     }
 }
 
@@ -45,46 +49,17 @@ fun createNetPeekViewController(callId: Long): UIViewController = ComposeUIViewC
 }
 
 /**
- * Requests the inspector to open in its own window (separate scene),
- * so it appears alongside your app in the iOS App Switcher.
- *
- * Requirements in your app's Info.plist:
- *   <key>UIApplicationSupportsMultipleScenes</key><true/>
- *
- * Requirements in your SceneDelegate / Info.plist scene config:
- *   - Add a UISceneConfigurations entry with
- *     UISceneConfigurationName = "NetPeekInspector"
- *     UISceneDelegateClassName = your delegate that calls
- *     NetPeekViewControllerKt.createNetPeekViewController()
- *
- * Usage (Swift, iOS 15+):
- *   NetPeekViewControllerKt.requestNetPeekWindow()
- *
- * On iOS 13–14, use the modal approach (createNetPeekViewController) instead.
+ * Opens the inspector at a specific request with a close (×) button.
+ * Use this when presenting from a notification tap so the user can dismiss it.
  */
-fun requestNetPeekWindow() {
-    if (!UIApplication.sharedApplication.supportsMultipleScenes) {
-        // Device/app doesn't support multiple scenes (iPhone pre-iOS 13 or
-        // UIApplicationSupportsMultipleScenes not set) — nothing to do here;
-        // use createNetPeekViewController() and present modally instead.
-        return
+fun createNetPeekViewController(callId: Long, onDismiss: () -> Unit): UIViewController =
+    ComposeUIViewController {
+        MaterialTheme {
+            NetPeekApp(
+                repository    = NetPeek.getRepository(),
+                initialCallId = callId,
+                onDismiss     = onDismiss
+            )
+        }
     }
 
-    val activity = NSUserActivity("io.netpeek.inspector.open")
-    activity.title = "NetPeek Inspector"
-
-    val options = UIWindowSceneActivationRequestOptions()
-    // requestPredicate is not set — system will create a new scene or
-    // reuse an existing one with the matching userActivity type.
-
-    UIApplication.sharedApplication.requestSceneSessionActivationWithSession(
-        session = null,  // null = create new session
-        userActivity = activity,
-        options = options,
-        errorHandler = { error ->
-            // Fallback: error opening scene (e.g. on iPhone where multi-window
-            // is OS-restricted). Host app should catch this and fall back to
-            // presenting createNetPeekViewController() modally.
-        }
-    )
-}

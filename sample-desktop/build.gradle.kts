@@ -13,6 +13,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(project(":netpeek-sdk"))
             implementation(project(":netpeek-ui"))
+            implementation(project(":sample-shared"))
             implementation(compose.desktop.currentOs)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)

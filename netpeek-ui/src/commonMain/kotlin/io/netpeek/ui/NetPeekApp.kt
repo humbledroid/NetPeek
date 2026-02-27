@@ -16,27 +16,23 @@ import io.netpeek.sdk.NetworkCallRepository
  * @param initialCallId When launched from a notification tap, pass the call ID here to
  *                      navigate directly to that request's detail screen.
  *                      Null (default) opens the list.
- *                      When this value changes (e.g. a second notification is tapped
- *                      while the inspector is already open), the UI navigates to the
- *                      newly requested call automatically.
+ * @param onDismiss     Optional callback invoked when the user taps the close button.
+ *                      When non-null, a close (×) button appears in the list screen's toolbar.
+ *                      Use this when the inspector is presented modally.
  */
 @Composable
 fun NetPeekApp(
     repository: NetworkCallRepository,
-    initialCallId: Long? = null
+    initialCallId: Long? = null,
+    onDismiss: (() -> Unit)? = null
 ) {
     var selectedCall by remember { mutableStateOf<NetworkCall?>(null) }
 
-    // Navigate to the specific call whenever initialCallId is set or changes.
-    // This covers:
-    //   1. Fresh launch from notification  → initialCallId arrives via onCreate
-    //   2. Second tap while open           → initialCallId changes via onNewIntent
-    //   3. No call ID (list launch)        → initialCallId is null, show list
     LaunchedEffect(initialCallId) {
         selectedCall = if (initialCallId != null && initialCallId > 0L) {
-            repository.getCallById(initialCallId)  // null-safe: falls back to list if not found
+            repository.getCallById(initialCallId)
         } else {
-            null  // show the list
+            null
         }
     }
 
@@ -48,7 +44,8 @@ fun NetPeekApp(
     } else {
         NetPeekListScreen(
             repository     = repository,
-            onCallSelected = { selectedCall = it }
+            onCallSelected = { selectedCall = it },
+            onDismiss      = onDismiss
         )
     }
 }

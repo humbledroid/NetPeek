@@ -94,22 +94,22 @@ object NetPeekNotifier {
         val emoji    = statusEmoji(call)
 
         val content = UNMutableNotificationContent()
-        content.title = "$emoji  ${call.method}  →  $status$duration"
-        content.body  = call.url
+        content.setTitle("$emoji  ${call.method}  →  $status$duration")
+        content.setBody(call.url
             .removePrefix("https://")
             .removePrefix("http://")
-            .let { if (it.length > 80) it.take(77) + "…" else it }
-        content.sound = if (call.isError || (call.responseCode ?: 0) >= 400)
+            .let { if (it.length > 80) it.take(77) + "…" else it })
+        content.setSound(if (call.isError || (call.responseCode ?: 0) >= 400)
             UNNotificationSound.defaultSound()    // critical sound requires entitlement
-            else UNNotificationSound.defaultSound()
-        content.badge              = NSNumber(int = badgeCount)
-        content.categoryIdentifier = CATEGORY_ID
-        content.userInfo           = mapOf(
+            else UNNotificationSound.defaultSound())
+        content.setBadge(NSNumber(int = badgeCount))
+        content.setCategoryIdentifier(CATEGORY_ID)
+        content.setUserInfo(mapOf(
             "netpeek_call_id" to call.id.toString(), // stored as String to avoid NSNumber boxing
             "netpeek_url"     to call.url,
             "netpeek_method"  to call.method,
             "netpeek_status"  to status
-        )
+        ))
 
         // Trigger immediately (minimum interval: 0.1s)
         val trigger = UNTimeIntervalNotificationTrigger

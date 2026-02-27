@@ -27,6 +27,7 @@ android {
 dependencies {
     implementation(project(":netpeek-sdk"))
     implementation(project(":netpeek-ui"))
+    implementation(project(":sample-shared"))
     implementation(libs.ktor.client.android)
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.material3:material3:1.3.1")
